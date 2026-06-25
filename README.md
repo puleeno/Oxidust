@@ -4,9 +4,9 @@
 
 [](https://opensource.org/licenses/MIT)
 [](https://www.rust-lang.org/)
-[](https://tauri.app/)
+[](https://slint.dev/)
 
-**Oxidust** is a lightning-fast, transparent, and multi-layered system cleaner designed to solve the "bloatware" problem on Windows, macOS, and Linux. Built with **Rust** and **Tauri**, it focuses on deep-system purging, real-time disk visualization, and remote fleet management.
+**Oxidust** is a lightning-fast, transparent, and multi-layered system cleaner designed to solve the "bloatware" problem on Windows, macOS, and Linux. Built with **Rust** and **Slint**, it focuses on deep-system purging, real-time disk visualization, and remote fleet management.
 
 -----
 
@@ -27,7 +27,7 @@ Legacy tools like CCleaner have become bloated, invasive, and opaque. **Oxidust*
 ## 🛠️ Tech Stack
 
   * **Core:** [Rust](https://www.rust-lang.org/) (High-concurrency scanning & memory safety)
-  * **UI:** [Tauri](https://tauri.app/) (Native-speed GUI with a tiny footprint)
+  * **UI:** [Slint](https://slint.dev/) (High-performance, lightweight declarative UI)
   * **Visualization:** WebGL/Canvas (Smooth interaction with millions of file nodes)
   * **Edge Backend:** [Cloudflare Workers](https://workers.cloudflare.com/) & [D1](https://developers.cloudflare.com/d1/) (Rule synchronization & analytics)
 
@@ -76,7 +76,7 @@ We welcome contributions from the community\! Whether you are a Rustacean, a UI/
 
 `git clone https://github.com/your-username/oxidust.git`
 `cd oxidust`
-`cargo tauri dev`
+`cargo run`
 
 -----
 

@@ -1,0 +1,150 @@
+import { Theme, RulePreset } from "./types.slint";
+
+component PresetItem inherits Rectangle {
+    in-out property <string> name;
+    in-out property <string> desc;
+    in-out property <string> target;
+    in-out property <string> size-text;
+    in-out property <string> safety;
+    in-out property <bool> checked;
+    callback toggled-cb;
+
+    height: 52px;
+    border-radius: Theme.radius-sm;
+    background: checked ? Theme.accent.transparentize(0.95) : transparent;
+    border-width: 1px; border-color: checked ? Theme.accent.transparentize(0.6) : Theme.border-color;
+
+    HorizontalLayout {
+        padding-left:12px; padding-right:12px; padding-top:10px; padding-bottom:10px;
+        spacing: 12px;
+
+        Rectangle { width: 18px; height: 18px; border-radius: 3px; border-width: 1px; border-color: checked ? Theme.accent : Theme.text-muted; background: checked ? Theme.accent : transparent;
+            if (checked) : Text { text: "✓"; color: #000000; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+            TouchArea { clicked => { root.toggled-cb(); } } }
+
+        VerticalLayout { spacing: 2px;
+            HorizontalLayout { spacing: 8px;
+                Text { text: name; color: checked ? Theme.text-secondary : Theme.text-primary; font-size: 12px; font-weight: 700; }
+                Rectangle { border-radius: 2px; background: safety == "safe" ? Theme.green.transparentize(0.95) : safety == "moderate" ? Theme.amber.transparentize(0.95) : Theme.rose.transparentize(0.95); border-width: 1px; border-color: safety == "safe" ? Theme.green.transparentize(0.8) : safety == "moderate" ? Theme.amber.transparentize(0.8) : Theme.rose.transparentize(0.8); padding-left:6px; padding-right:6px;
+                    Text { text: safety; color: safety == "safe" ? Theme.green : safety == "moderate" ? Theme.amber : Theme.rose; font-size: 8px; font-family: "JetBrains Mono"; } } }
+            Text { text: desc; color: Theme.text-muted; font-size: 10px; }
+            Text { text: "Target: " + target; color: #ffffff4d; font-size: 9px; font-family: "JetBrains Mono"; } }
+
+        Rectangle { }
+        Text { text: size-text; color: Theme.text-secondary; font-size: 12px; font-weight: 700; font-family: "JetBrains Mono"; }
+    }
+
+    TouchArea { clicked => { root.toggled-cb(); } }
+}
+
+export component RuleEngine inherits Rectangle {
+    in-out property <[RulePreset]> presets;
+    in-out property <string> active-os: "linux";
+    in-out property <string> safety-level: "moderate";
+    in-out property <bool> is-scanning: false;
+    in-out property <int> total-reclaimable: 0;
+    in-out property <string> reclaimable-text: "0 B";
+    in-out property <int> checked-count: 0;
+    in-out property <bool> has-dangerous: false;
+
+    callback toggle-preset(string);
+    callback select-all(bool);
+    callback change-os(string);
+    callback change-safety(string);
+    callback run-dry-scan;
+    callback purge-checked;
+
+    background: Theme.bg-tertiary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 24px;
+
+        Rectangle {
+            padding-bottom: 20px;
+            Rectangle { height: 1px; background: Theme.border-color; }
+
+            HorizontalLayout {
+                spacing: 12px;
+                Rectangle { width: 36px; height: 36px; border-radius: Theme.radius; background: Theme.accent.transparentize(0.9);
+                    Text { text: "⚙"; font-size: 20px; horizontal-alignment: center; vertical-alignment: center; } }
+                VerticalLayout { spacing: 2px;
+                    Text { text: "Layered Rule Engine"; color: Theme.text-secondary; font-size: 18px; font-weight: 500; }
+                    Text { text: "Select targets spanning OS roots, distro package managers, and isolated app layers."; color: Theme.text-muted; font-size: 12px; } }
+                Rectangle { }
+                Rectangle { border-width: 1px; border-color: Theme.border-color; border-radius: Theme.radius-sm; background: Theme.bg-secondary;
+                    HorizontalLayout { spacing: 2px; padding: 3px;
+                        Rectangle { width: 80px; height: 28px; border-radius: 4px; background: active-os == "linux" ? Theme.accent : transparent;
+                            Text { text: "Linux"; color: active-os == "linux" ? #000000 : Theme.text-muted; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { clicked => { root.change-os("linux"); } } }
+                        Rectangle { width: 80px; height: 28px; border-radius: 4px; background: active-os == "macos" ? Theme.accent : transparent;
+                            Text { text: "macOS"; color: active-os == "macos" ? #000000 : Theme.text-muted; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { clicked => { root.change-os("macos"); } } }
+                        Rectangle { width: 80px; height: 28px; border-radius: 4px; background: active-os == "windows" ? Theme.accent : transparent;
+                            Text { text: "Windows"; color: active-os == "windows" ? #000000 : Theme.text-muted; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { clicked => { root.change-os("windows"); } } }
+                    } }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 24px;
+
+            Rectangle { width: 260px; background: Theme.bg-secondary; border-width: 1px; border-color: Theme.border-color; border-radius: Theme.radius; padding: 20px;
+                VerticalLayout { spacing: 16px;
+                    Text { text: "Policy Configurations"; color: Theme.text-muted; font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono"; }
+                    VerticalLayout { spacing: 8px;
+                        HorizontalLayout { Text { text: "Maximum Safety Threshold"; color: #ffffff99; font-size: 12px; font-family: "JetBrains Mono"; } Rectangle { } Text { text: safety-level; color: Theme.accent; font-size: 10px; font-weight: 700; letter-spacing: 1px; font-family: "JetBrains Mono"; } }
+                        Rectangle { height: 32px; border-width: 1px; border-color: Theme.border-color; border-radius: 4px; background: Theme.bg-tertiary;
+                            HorizontalLayout { spacing: 2px; padding: 2px;
+                                Rectangle { width: 76px; height: 26px; border-radius: 3px; background: safety-level == "safe" ? Theme.green.transparentize(0.9) : transparent; border-width: safety-level == "safe" ? 1px : 0px; border-color: safety-level == "safe" ? Theme.green.transparentize(0.7) : transparent;
+                                    Text { text: "safe"; color: safety-level == "safe" ? Theme.green : #ffffff4d; font-size: 10px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                                    TouchArea { clicked => { root.change-safety("safe"); } } }
+                                Rectangle { width: 76px; height: 26px; border-radius: 3px; background: safety-level == "moderate" ? Theme.amber.transparentize(0.9) : transparent; border-width: safety-level == "moderate" ? 1px : 0px; border-color: safety-level == "moderate" ? Theme.amber.transparentize(0.7) : transparent;
+                                    Text { text: "moderate"; color: safety-level == "moderate" ? Theme.amber : #ffffff4d; font-size: 10px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                                    TouchArea { clicked => { root.change-safety("moderate"); } } }
+                                Rectangle { width: 76px; height: 26px; border-radius: 3px; background: safety-level == "dangerous" ? Theme.rose.transparentize(0.9) : transparent; border-width: safety-level == "dangerous" ? 1px : 0px; border-color: safety-level == "dangerous" ? Theme.rose.transparentize(0.7) : transparent;
+                                    Text { text: "dangerous"; color: safety-level == "dangerous" ? Theme.rose : #ffffff4d; font-size: 10px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                                    TouchArea { clicked => { root.change-safety("dangerous"); } } }
+                            } }
+                    }
+                    Rectangle { border-radius: Theme.radius-sm; background: safety-level == "safe" ? Theme.green.transparentize(0.95) : safety-level == "moderate" ? Theme.amber.transparentize(0.95) : Theme.rose.transparentize(0.95); border-width: 1px; border-color: safety-level == "safe" ? Theme.emerald.transparentize(0.6) : safety-level == "moderate" ? Theme.amber.transparentize(0.6) : Theme.rose.transparentize(0.6); padding: 12px;
+                        VerticalLayout { spacing: 4px;
+                            Text { text: safety-level == "safe" ? " Safe Level (Tier 1)" : safety-level == "moderate" ? "⚠ Moderate Level (Tier 2)" : "🔴 Server/Deep Level (Tier 3)"; color: safety-level == "safe" ? Theme.green : safety-level == "moderate" ? Theme.amber : Theme.rose; font-size: 11px; font-weight: 700; }
+                            Text { text: safety-level == "safe" ? "Clears non-essential caches and temp assets only." : safety-level == "moderate" ? "Includes application diagnostic logs and package cache folders." : "Targets Docker layers, registry caches, and orphaned system volumes."; color: #ffffff99; font-size: 11px; } }
+                    }
+                    Rectangle { padding-top: 12px; Rectangle { height: 1px; background: Theme.border-color; }
+                        VerticalLayout { spacing: 4px;
+                            Text { text: "Checked Targets: " + checked-count; color: Theme.text-muted; font-size: 12px; font-family: "JetBrains Mono"; }
+                            Text { text: "Projected Release: " + reclaimable-text; color: Theme.accent; font-size: 12px; font-weight: 700; font-family: "JetBrains Mono"; } }
+                    }
+                    Rectangle { padding-top: 12px; Rectangle { height: 1px; background: Theme.border-color; }
+                        VerticalLayout { spacing: 8px;
+                            Rectangle { height: 36px; border-width: 1px; border-color: Theme.border-color; border-radius: Theme.radius-sm; Text { text: "▶ Dry Run (Scan Nodes)"; color: Theme.text-secondary; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.run-dry-scan(); } } }
+                            Rectangle { height: 36px; border-radius: Theme.radius-sm; background: Theme.accent; Text { text: "Purge Checked Targets"; color: #000000; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.purge-checked(); } } } }
+                    }
+                    if (has-dangerous) : Rectangle { border-radius: Theme.radius-sm; background: Theme.rose.transparentize(0.95); border-width: 1px; border-color: Theme.rose.transparentize(0.8); padding: 8px; Text { text: "You have selected highly volatile system targets. Confirm service syncs before purging."; color: Theme.rose; font-size: 10px; } }
+                }
+            }
+
+            Rectangle { background: Theme.bg-secondary; border-width: 1px; border-color: Theme.border-color; border-radius: Theme.radius; padding: 20px;
+                VerticalLayout { spacing: 12px;
+                    HorizontalLayout { Text { text: "Available Presets (" + active-os + ")"; color: Theme.text-muted; font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono"; } Rectangle { } Text { text: "Select All"; color: Theme.text-muted; font-size: 10px; TouchArea { clicked => { root.select-all(true); } } } Text { text: "  |  "; color: Theme.text-muted; font-size: 10px; } Text { text: "Deselect All"; color: Theme.text-muted; font-size: 10px; TouchArea { clicked => { root.select-all(false); } } } }
+                    Rectangle { VerticalLayout { spacing: 6px;
+                        for preset in presets: PresetItem {
+                            name: preset.name;
+                            desc: preset.description;
+                            target: preset.target;
+                            size-text: preset.size-text;
+                            safety: preset.safety;
+                            checked: preset.checked;
+                            toggled-cb => { root.toggle-preset(preset.id); }
+                        }
+                    } }
+                }
+            }
+        }
+    }
+}

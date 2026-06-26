@@ -1,0 +1,120 @@
+import { Theme, LogEntry } from "./types.slint";
+
+component LogLine {
+    in-out property <string> text;
+    in-out property <string> level;
+
+    Text {
+        text: root.text;
+        color: level == "success" || level == "ok" ? Theme.green :
+               level == "warning" || level == "lock" ? Theme.amber :
+               level == "error" || level == "critical" ? Theme.rose :
+               level == "exec" ? Theme.accent :
+               level == "cmd" ? #a1a1aa :
+               Theme.text-primary;
+        font-size: 11px;
+        font-weight: level == "success" || level == "ok" || level == "critical" || level == "warning" || level == "lock" ? 700 : 400;
+        font-family: "JetBrains Mono";
+        vertical-alignment: center;
+    }
+}
+
+export component TerminalLog inherits Rectangle {
+    in-out property <[LogEntry]> logs;
+    callback clear-logs;
+
+    min-height: 200px;
+    max-height: 200px;
+    background: Theme.bg-secondary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        spacing: 0;
+
+        // Title bar
+        Rectangle {
+            height: 36px;
+
+            // Separator line at the bottom of the title bar
+            Rectangle {
+                height: 1px;
+                background: Theme.border-color;
+            }
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                alignment: space-between;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: Theme.accent;
+                    }
+                    Text {
+                        text: "Oxidust Active Kernel Console";
+                        color: Theme.text-muted;
+                        font-size: 11px;
+                        font-weight: 700;
+                        letter-spacing: 1px;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        border-width: 1px; border-color: Theme.border-color;
+                        border-radius: 2px;
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        Text {
+                            text: "ttyS001";
+                            color: Theme.text-muted;
+                            font-size: 10px;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                Text {
+                    text: "Clear Console";
+                    color: Theme.text-muted;
+                    font-size: 10px;
+                    vertical-alignment: center;
+
+                    TouchArea {
+                        clicked => {
+                            root.clear-logs();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Log display
+        Rectangle {
+            background: #00000066;
+
+            VerticalLayout {
+                padding: 12px;
+                spacing: 2px;
+
+                if (log-count == 0) : Text {
+                    text: "Console standing by. Run rules dry-run scan or direct purging to launch execution.";
+                    color: #ffffff33;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                for entry[idx] in logs: LogLine {
+                    text: entry.text;
+                    level: entry.level;
+                }
+            }
+        }
+    }
+
+    property <int> log-count: logs.length;
+}

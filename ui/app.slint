@@ -1,0 +1,197 @@
+import { Theme, DiskBlock, RulePreset, GhostFile, FleetNode, LogEntry, ChatMessage, FleetForm } from "./types.slint";
+import { Sidebar } from "./sidebar.slint";
+import { Header } from "./header.slint";
+import { TerminalLog } from "./terminal_log.slint";
+import { RuleEngine } from "./rule_engine.slint";
+import { TreeMapView } from "./treemap.slint";
+import { GhostHunter } from "./ghost_hunter.slint";
+import { FleetManager } from "./fleet_manager.slint";
+import { AIAdvisor } from "./ai_advisor.slint";
+
+export component AppWindow inherits Window {
+    preferred-width: 1400px;
+    preferred-height: 900px;
+    background: Theme.bg-primary;
+    title: "Oxidust - Enterprise System Optimizer";
+
+    // Core state
+    in-out property <int> active-tab: 0;
+    in-out property <bool> is-scanning: false;
+    in-out property <string> scanning-node-id: "";
+
+    // Data models
+    in-out property <[DiskBlock]> blocks;
+    in-out property <[RulePreset]> presets;
+    in-out property <[GhostFile]> ghosts;
+    in-out property <[FleetNode]> fleet-nodes;
+    in-out property <[LogEntry]> logs;
+    in-out property <[ChatMessage]> chat-history;
+    in-out property <string> audit-report: "";
+
+    // Rule Engine state
+    in-out property <string> active-os: "linux";
+    in-out property <string> safety-level: "moderate";
+    in-out property <int> checked-count: 0;
+    in-out property <int> total-reclaimable: 0;
+    in-out property <string> reclaimable-text: "0 B";
+    in-out property <bool> has-dangerous: false;
+
+    // Header stats
+    in-out property <int> used-percentage: 77;
+    in-out property <int> reclaimed-bytes: 0;
+    in-out property <string> reclaimed-text: "0 B";
+
+    // Form state
+    in-out property <FleetForm> fleet-form: { visible: false, name: "", ip: "", os: "linux", total-space: "250" };
+
+    // Callbacks (handled from Rust)
+    callback tab-changed(int);
+    callback toggle-preset(string);
+    callback select-all(bool);
+    callback change-os(string);
+    callback change-safety(string);
+    callback run-dry-scan;
+    callback purge-checked;
+    callback block-clicked(string);
+    callback release-ghost(string);
+    callback kill-process(int);
+    callback scan-ghosts;
+    callback trigger-node-scan(string);
+    callback remote-node-purge(string);
+    callback add-node(string, string, string, string);
+    callback send-message(string);
+    callback generate-audit;
+    callback clear-logs;
+
+    HorizontalLayout {
+        spacing: 0;
+
+        // Sidebar
+        sidebar := Sidebar {
+            active-tab <=> root.active-tab;
+            tab-changed(t) => { root.active-tab = t; root.tab-changed(t); }
+        }
+
+        // Main content
+        Rectangle {
+            VerticalLayout {
+                spacing: 0;
+
+                // Header
+                header := Header {
+                    used-percentage <=> root.used-percentage;
+                    reclaimed-text <=> root.reclaimed-text;
+                    is-scanning <=> root.is-scanning;
+                }
+
+                // Scrollable content area
+                Rectangle {
+                    VerticalLayout {
+                        spacing: 0;
+                        padding-left: 32px;
+                        padding-right: 32px;
+                        padding-top: 32px;
+                        padding-bottom: 16px;
+
+                        VerticalLayout {
+                            spacing: 24px;
+
+                            // Tab 0: Optimizer (Rule Engine + TreeMap)
+                            if (active-tab == 0) : VerticalLayout {
+                                spacing: 24px;
+
+                                rule-engine := RuleEngine {
+                                    presets <=> root.presets;
+                                    active-os <=> root.active-os;
+                                    safety-level <=> root.safety-level;
+                                    checked-count <=> root.checked-count;
+                                    total-reclaimable <=> root.total-reclaimable;
+                                    reclaimable-text <=> root.reclaimable-text;
+                                    has-dangerous <=> root.has-dangerous;
+                                    is-scanning <=> root.is-scanning;
+                                    toggle-preset(id) => { root.toggle-preset(id); }
+                                    select-all(v) => { root.select-all(v); }
+                                    change-os(os) => { root.change-os(os); }
+                                    change-safety(s) => { root.change-safety(s); }
+                                    run-dry-scan => { root.run-dry-scan(); }
+                                    purge-checked => { root.purge-checked(); }
+                                }
+
+                                treemap := TreeMapView {
+                                    blocks <=> root.blocks;
+                                    block-clicked(id) => { root.block-clicked(id); }
+                                }
+                            }
+
+                            // Tab 1: Ghost Hunter
+                            if (active-tab == 1) : GhostHunter {
+                                ghosts <=> root.ghosts;
+                                is-scanning <=> root.is-scanning;
+                                release-ghost(id) => { root.release-ghost(id); }
+                                kill-process(pid) => { root.kill-process(pid); }
+                                scan-ghosts => { root.scan-ghosts(); }
+                            }
+
+                            // Tab 2: Fleet Manager
+                            if (active-tab == 2) : FleetManager {
+                                nodes <=> root.fleet-nodes;
+                                scanning-node-id <=> root.scanning-node-id;
+                                trigger-node-scan(id) => { root.trigger-node-scan(id); }
+                                remote-node-purge(id) => { root.remote-node-purge(id); }
+                                add-node(name, ip, os, space) => { root.add-node(name, ip, os, space); }
+                            }
+
+                            // Tab 3: AI Advisor
+                            if (active-tab == 3) : AIAdvisor {
+                                chat-history <=> root.chat-history;
+                                audit-report <=> root.audit-report;
+                                send-message(msg) => { root.send-message(msg); }
+                                generate-audit => { root.generate-audit(); }
+                            }
+
+                            // Terminal Log (always visible)
+                            terminal := TerminalLog {
+                                logs <=> root.logs;
+                                clear-logs => { root.clear-logs(); }
+                            }
+                        }
+                    }
+                }
+
+                // Footer border line
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+
+                // Footer
+                Rectangle {
+                    height: 48px;
+                    background: Theme.bg-secondary;
+
+                    HorizontalLayout {
+                        padding-left: 32px;
+                        padding-right: 32px;
+                        alignment: space-between;
+
+                        Text {
+                            text: "Oxidust v2.4.0 • Sleek Production Console";
+                            color: Theme.text-muted;
+                            font-size: 11px;
+                            font-family: "JetBrains Mono";
+                        }
+
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text { text: "GitHub Repo"; color: Theme.text-muted; font-size: 11px; }
+                            Text { text: "•"; color: Theme.text-muted; font-size: 11px; }
+                            Text { text: "Discord Guild"; color: Theme.text-muted; font-size: 11px; }
+                            Text { text: "•"; color: Theme.text-muted; font-size: 11px; }
+                            Text { text: "Sponsor Project"; color: Theme.text-muted; font-size: 11px; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

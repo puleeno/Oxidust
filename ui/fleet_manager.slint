@@ -1,0 +1,389 @@
+import { Theme, FleetNode, FleetForm } from "./types.slint";
+
+component NodeCard inherits Rectangle {
+    in-out property <string> name;
+    in-out property <string> ip;
+    in-out property <string> os;
+    in-out property <string> status;
+    in-out property <int> disk-usage;
+    in-out property <string> disk-usage-text;
+    in-out property <int> ghost-count;
+    in-out property <string> last-scan;
+    in-out property <bool> is-scanning;
+    in-out property <bool> is-low-space;
+    callback scan-cb;
+    callback purge-cb;
+
+    border-radius: Theme.radius;
+    background: Theme.bg-secondary;
+    border-width: 1px; border-color: is-low-space ? Theme.amber.transparentize(0.7) : Theme.border-color;
+    padding: 20px;
+
+    VerticalLayout {
+        spacing: 12px;
+
+        HorizontalLayout {
+            spacing: 12px;
+
+            Rectangle {
+                width: 32px; height: 32px;
+                border-radius: 6px;
+                background: status == "offline" ? #ffffff0d : is-low-space ? Theme.amber.transparentize(0.9) : Theme.border-color;
+
+                Text {
+                    text: "🖥";
+                    font-size: 18px;
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+            }
+
+            VerticalLayout {
+                spacing: 2px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { text: name; color: Theme.text-secondary; font-size: 14px; font-weight: 700; }
+                    Rectangle {
+                        border-width: 1px; border-color: Theme.border-color;
+                        border-radius: 2px;
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        Text { text: ip; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                    }
+                }
+                Text {
+                    text: "💻 " + (os == "macos" ? "macOS" : os);
+                    color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono";
+                }
+            }
+
+            Rectangle { }
+
+            Text {
+                text: status == "offline" ? "⚫ Offline" : is-low-space ? "⚠ Critical Space" : "🟢 Connected";
+                color: status == "offline" ? Theme.text-muted : is-low-space ? Theme.amber : Theme.green;
+                font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+            }
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: "Vol /dev/sda1 Storage Usage";
+                color: Theme.text-muted; font-size: 11px; font-family: "JetBrains Mono";
+            }
+
+            Rectangle {
+                height: 6px;
+                border-radius: 16px;
+                background: #00000066;
+
+                Rectangle {
+                    width: (disk-usage * parent.width) / 100;
+                    height: 6px;
+                    border-radius: 16px;
+                    background: is-low-space ? Theme.amber : Theme.accent;
+                }
+            }
+
+            Text {
+                text: disk-usage-text;
+                color: is-low-space ? Theme.amber : Theme.text-muted;
+                font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 16px;
+            Text {
+                text: "Ghost handles: " + ghost-count + " leaking";
+                color: ghost-count > 0 ? Theme.purple : Theme.text-muted;
+                font-size: 11px; font-family: "JetBrains Mono";
+            }
+            Rectangle { }
+            Text {
+                text: "Last Debloat: " + last-scan;
+                color: Theme.text-muted; font-size: 11px; font-family: "JetBrains Mono";
+            }
+        }
+
+        VerticalLayout {
+            spacing: 8px;
+            padding-top: 12px;
+
+            Rectangle {
+                height: 1px;
+                background: Theme.border-color;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+
+                Rectangle {
+                    height: 28px;
+                    border-width: 1px; border-color: Theme.border-color;
+                    border-radius: 4px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    Text {
+                        text: "🔄 Audit Nodes";
+                        color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono";
+                        horizontal-alignment: center; vertical-alignment: center;
+                    }
+                    TouchArea {
+                        clicked => { root.scan-cb(); }
+                    }
+                }
+
+                Rectangle {
+                    height: 28px;
+                    border-width: 1px; border-color: Theme.accent.transparentize(0.7);
+                    border-radius: 4px;
+                    background: Theme.accent.transparentize(0.9);
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    Text {
+                        text: "🗑 Remote Purge";
+                        color: Theme.accent; font-size: 10px; font-weight: 700; font-family: "JetBrains Mono";
+                        horizontal-alignment: center; vertical-alignment: center;
+                    }
+                    TouchArea {
+                        clicked => { root.purge-cb(); }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component FleetManager inherits Rectangle {
+    in-out property <[FleetNode]> nodes;
+    in-out property <string> scanning-node-id: "";
+    callback trigger-node-scan(string);
+    callback remote-node-purge(string);
+    callback add-node(string, string, string, string);
+
+    in-out property <FleetForm> form: { visible: false, name: "", ip: "", os: "linux", total-space: "250" };
+
+    in-out property <int> total-nodes: 0;
+    in-out property <int> overloaded-count: 0;
+    in-out property <int> total-ghosts: 0;
+
+    background: Theme.bg-tertiary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 24px;
+
+        Rectangle {
+            padding-bottom: 20px;
+
+            VerticalLayout {
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    Rectangle {
+                        width: 36px; height: 36px;
+                        border-radius: Theme.radius;
+                        background: Theme.accent.transparentize(0.9);
+                        Text {
+                            text: "🌐";
+                            font-size: 20px;
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text { text: "Fleet Commander Console"; color: Theme.text-secondary; font-size: 18px; font-weight: 500; }
+                        Text { text: "Trigger remote de-bloat orchestration, scan log leaks, and audit server health at the edge."; color: Theme.text-muted; font-size: 12px; }
+                    }
+
+                    Rectangle { }
+
+                    Rectangle {
+                        height: 32px;
+                        border-radius: Theme.radius-sm;
+                        background: Theme.accent;
+                        padding-left: 16px;
+                        padding-right: 16px;
+                        Text {
+                            text: "+ Register Remote Server";
+                            color: #000000; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                        TouchArea { clicked => { form.visible = !form.visible; } }
+                    }
+                }
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 16px;
+
+            stat-card := Rectangle {
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                background: Theme.bg-secondary;
+                padding: 16px;
+                HorizontalLayout {
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Active Clusters"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                        Text { text: total-nodes + " Nodes"; color: Theme.text-secondary; font-size: 22px; font-weight: 700; font-family: "JetBrains Mono"; }
+                    }
+                    Rectangle { }
+                }
+            }
+
+            stat-card2 := Rectangle {
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                background: Theme.bg-secondary;
+                padding: 16px;
+                HorizontalLayout {
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Capacity Alerts"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                        Text { text: overloaded-count + " Overloaded"; color: overloaded-count > 0 ? Theme.amber : Theme.green; font-size: 22px; font-weight: 700; font-family: "JetBrains Mono"; }
+                    }
+                    Rectangle { }
+                }
+            }
+
+            stat-card3 := Rectangle {
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                background: Theme.bg-secondary;
+                padding: 16px;
+                HorizontalLayout {
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Fleet Phantom Leaks"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                        Text { text: total-ghosts + " Ghost Locks"; color: total-ghosts > 0 ? Theme.purple : Theme.text-muted; font-size: 22px; font-weight: 700; font-family: "JetBrains Mono"; }
+                    }
+                    Rectangle { }
+                }
+            }
+        }
+
+        if (form.visible) : Rectangle {
+            border-width: 1px; border-color: Theme.border-color;
+            border-radius: Theme.radius;
+            background: Theme.bg-secondary;
+            padding: 20px;
+
+            VerticalLayout {
+                spacing: 16px;
+
+                HorizontalLayout {
+                    Text { text: "Register edge target"; color: Theme.accent; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; letter-spacing: 1px; }
+                    Rectangle { }
+                    Text { text: "Secure SSH sync integration"; color: Theme.text-muted; font-size: 10px; }
+                }
+
+                HorizontalLayout {
+                    spacing: 16px;
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Server Hostname"; color: #ffffff80; font-size: 11px; font-family: "JetBrains Mono"; }
+                        input-name := TextInput {
+                            text <=> form.name;
+                            font-size: 12px; font-family: "JetBrains Mono";
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "IP address / SSH target"; color: #ffffff80; font-size: 11px; font-family: "JetBrains Mono"; }
+                        input-ip := TextInput {
+                            text <=> form.ip;
+                            font-size: 12px; font-family: "JetBrains Mono";
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Platform OS"; color: #ffffff80; font-size: 11px; font-family: "JetBrains Mono"; }
+                        input-os := TextInput {
+                            text <=> form.os;
+                            font-size: 12px; font-family: "JetBrains Mono";
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Total Volume Size (GB)"; color: #ffffff80; font-size: 11px; font-family: "JetBrains Mono"; }
+                        input-space := TextInput {
+                            text <=> form.total-space;
+                            font-size: 12px; font-family: "JetBrains Mono";
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    spacing: 8px;
+                    Rectangle {
+                        height: 28px;
+                        border-width: 1px; border-color: Theme.border-color;
+                        border-radius: 4px;
+                        padding-left: 16px;
+                        padding-right: 16px;
+                        Text { text: "Cancel"; color: Theme.text-muted; font-size: 11px; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { form.visible = false; } }
+                    }
+                    Rectangle {
+                        height: 28px;
+                        background: Theme.accent;
+                        border-radius: 4px;
+                        padding-left: 16px;
+                        padding-right: 16px;
+                        Text { text: "Confirm Registration"; color: #000000; font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea {
+                            clicked => {
+                                root.add-node(form.name, form.ip, form.os, form.total-space);
+                                form.visible = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 16px;
+
+            if (nodes.length == 0) : Rectangle {
+                Text {
+                    text: "No cluster targets registered yet.";
+                    color: Theme.text-muted; font-size: 12px; font-family: "JetBrains Mono";
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+            }
+
+            for node[idx] in nodes: NodeCard {
+                name: node.name;
+                ip: node.ip;
+                os: node.os;
+                status: node.status;
+                disk-usage: node.disk-usage;
+                disk-usage-text: node.disk-usage + "% (" + (node.disk-total - node.disk-free) + " / " + node.disk-total + ")";
+                ghost-count: node.ghost-files-count;
+                last-scan: node.last-scan;
+                is-scanning: scanning-node-id == node.id;
+                is-low-space: node.disk-usage > 80;
+
+                scan-cb => { root.trigger-node-scan(node.id); }
+                purge-cb => { root.remote-node-purge(node.id); }
+            }
+        }
+    }
+}

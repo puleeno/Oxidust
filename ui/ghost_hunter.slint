@@ -1,0 +1,306 @@
+import { Theme, GhostFile } from "./types.slint";
+
+component GhostItem inherits Rectangle {
+    in-out property <string> process;
+    in-out property <int> pid;
+    in-out property <string> path;
+    in-out property <string> size-text;
+    in-out property <bool> is-released;
+    callback release-cb;
+    callback kill-cb;
+    in-out property <bool> is-expanded: false;
+
+    height: is-expanded ? 80px : 44px;
+    border-radius: Theme.radius-sm;
+    background: is-expanded ? Theme.purple.transparentize(0.95) : transparent;
+    border-width: 1px; border-color: is-expanded ? Theme.purple.transparentize(0.6) : Theme.border-color;
+
+    VerticalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 4px;
+
+        HorizontalLayout {
+            spacing: 12px;
+            Rectangle {
+                width: 24px; height: 24px;
+                border-radius: 4px;
+                background: Theme.purple.transparentize(0.9);
+                Text {
+                    text: ">_";
+                    color: Theme.purple;
+                    font-size: 10px; font-weight: 700; font-family: "JetBrains Mono";
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+            }
+
+            VerticalLayout {
+                spacing: 2px;
+                Text {
+                    text: process + "  PID: " + pid;
+                    color: is-released ? Theme.text-muted : Theme.text-secondary;
+                    font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+                }
+                Text {
+                    text: path;
+                    color: Theme.text-muted;
+                    font-size: 10px; font-family: "JetBrains Mono";
+                }
+            }
+
+            Rectangle { }
+
+            Text {
+                text: size-text + (is-released ? "  ✓ Released" : "  ⚠ Leaking");
+                color: is-released ? Theme.green : Theme.rose;
+                font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+                vertical-alignment: center;
+            }
+        }
+
+        if (is-expanded && !is-released) : HorizontalLayout {
+            spacing: 8px;
+            Rectangle { }
+            Rectangle {
+                height: 28px;
+                border-width: 1px; border-color: Theme.purple.transparentize(0.7);
+                border-radius: 4px;
+                background: Theme.purple.transparentize(0.9);
+                padding-left: 12px;
+                padding-right: 12px;
+                Text {
+                    text: "⚡ Close File Handle";
+                    color: Theme.purple;
+                    font-size: 10px; font-family: "JetBrains Mono";
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+                TouchArea { clicked => { root.release-cb(); } }
+            }
+            Rectangle {
+                height: 28px;
+                border-width: 1px; border-color: Theme.rose.transparentize(0.7);
+                border-radius: 4px;
+                background: Theme.rose.transparentize(0.9);
+                padding-left: 12px;
+                padding-right: 12px;
+                Text {
+                    text: "🔥 Sigkill Process";
+                    color: Theme.rose;
+                    font-size: 10px; font-family: "JetBrains Mono";
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+                TouchArea { clicked => { root.kill-cb(); } }
+            }
+        }
+    }
+
+    TouchArea {
+        clicked => { is-expanded = !is-expanded; }
+    }
+}
+
+export component GhostHunter inherits Rectangle {
+    in-out property <[GhostFile]> ghosts;
+    in-out property <bool> is-scanning: false;
+    in-out property <int> leaking-count: 0;
+    in-out property <int> total-leaking-size: 0;
+    callback release-ghost(string);
+    callback kill-process(int);
+    callback scan-ghosts;
+
+    background: Theme.bg-tertiary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 24px;
+
+        Rectangle {
+            padding-bottom: 20px;
+
+            VerticalLayout {
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    Rectangle {
+                        width: 36px; height: 36px;
+                        border-radius: Theme.radius;
+                        background: Theme.purple.transparentize(0.9);
+                        Text {
+                            text: "👻";
+                            font-size: 20px;
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text {
+                            text: "Ghost-Hunter Process Engine";
+                            color: Theme.text-secondary; font-size: 18px; font-weight: 500;
+                        }
+                        Text {
+                            text: "Locates unlinked deleted file descriptors held by running processes (Ghost Locks).";
+                            color: Theme.text-muted; font-size: 12px;
+                        }
+                    }
+
+                    Rectangle { }
+
+                    Rectangle {
+                        height: 32px;
+                        border-width: 1px; border-color: Theme.purple.transparentize(0.7);
+                        border-radius: Theme.radius-sm;
+                        background: Theme.purple.transparentize(0.9);
+                        padding-left: 16px;
+                        padding-right: 16px;
+
+                        Text {
+                            text: is-scanning ? "Auditing Descriptors..." : "Trigger Descriptor Hunt";
+                            color: Theme.purple;
+                            font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+
+                        TouchArea { clicked => { root.scan-ghosts(); } }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 24px;
+
+            Rectangle {
+                width: 260px;
+                background: Theme.bg-secondary;
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                padding: 20px;
+
+                VerticalLayout {
+                    spacing: 16px;
+
+                    Text {
+                        text: "Engine Status";
+                        color: Theme.text-muted;
+                        font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono";
+                    }
+
+                    Rectangle {
+                        height: 120px;
+                        background: #00000066;
+                        border-width: 1px; border-color: Theme.border-color;
+                        border-radius: Theme.radius-sm;
+
+                        Text {
+                            text: leaking-count > 0 ? leaking-count + " Active" : "FD Clean & Synchronized";
+                            color: leaking-count > 0 ? Theme.purple : Theme.green;
+                            font-size: 18px; font-weight: 700; font-family: "JetBrains Mono";
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Rectangle {
+                            border-width: 1px; border-color: Theme.border-color;
+                            border-radius: Theme.radius-sm;
+                            padding: 12px;
+
+                            VerticalLayout {
+                                spacing: 4px;
+                                Text {
+                                    text: "Phantom Bloat";
+                                    color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono";
+                                }
+                                Text {
+                                    text: total-leaking-size;
+                                    color: Theme.text-secondary; font-size: 14px; font-weight: 700; font-family: "JetBrains Mono";
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            border-width: 1px; border-color: Theme.border-color;
+                            border-radius: Theme.radius-sm;
+                            padding: 12px;
+
+                            VerticalLayout {
+                                spacing: 4px;
+                                Text {
+                                    text: "Audit Safety";
+                                    color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono";
+                                }
+                                Text {
+                                    text: "✅ Safe";
+                                    color: Theme.green; font-size: 14px; font-weight: 700;
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        padding-top: 12px;
+
+                        VerticalLayout {
+                            Rectangle {
+                                height: 1px;
+                                background: Theme.border-color;
+                            }
+
+                            Text {
+                                text: "Ghost files arise when a process deletes a massive log file but retains the open file handle. Standard filesystems hide the name, but keep occupying raw block space!";
+                                color: #ffffff80;
+                                font-size: 11px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                background: Theme.bg-secondary;
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                padding: 20px;
+
+                VerticalLayout {
+                    spacing: 12px;
+
+                    Text {
+                        text: "Detected Open Descriptors";
+                        color: Theme.text-muted;
+                        font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono";
+                    }
+
+                    if (ghosts.length == 0) : Text {
+                        text: "No active phantom locks discovered.";
+                        color: Theme.text-muted; font-size: 12px; font-family: "JetBrains Mono";
+                        horizontal-alignment: center;
+                    }
+
+                    for ghost in ghosts: GhostItem {
+                        process: ghost.process;
+                        pid: ghost.pid;
+                        path: ghost.path;
+                        size-text: ghost.size;
+                        is-released: ghost.released;
+                        release-cb => { root.release-ghost(ghost.id); }
+                        kill-cb => { root.kill-process(ghost.pid); }
+                    }
+                }
+            }
+        }
+    }
+}

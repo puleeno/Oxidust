@@ -1,0 +1,298 @@
+import { Theme } from "./types.slint";
+
+export component Sidebar inherits Rectangle {
+    in-out property <int> active-tab: 0;
+    callback tab-changed(int);
+
+    min-width: 240px;
+    max-width: 240px;
+    background: Theme.bg-secondary;
+
+    HorizontalLayout {
+        padding: 0;
+        spacing: 0;
+
+        Rectangle {
+            VerticalLayout {
+                padding: 0;
+
+                // Logo section
+                Rectangle {
+                    height: 70px;
+                    padding-left:24px; padding-right:24px;
+
+                    HorizontalLayout {
+                        alignment: start;
+                        spacing: 12px;
+
+                        Rectangle {
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 6px;
+                            background: Theme.accent;
+
+                            Text {
+                                text: "Ox";
+                                color: #000000;
+                                font-weight: 700;
+                                font-size: 13px;
+                                font-family: "JetBrains Mono";
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        VerticalLayout {
+                            spacing: 2px;
+                            Text {
+                                text: "OXIDUST";
+                                color: Theme.text-secondary;
+                                font-weight: 800;
+                                font-size: 13px;
+                                letter-spacing: 2px;
+                            }
+                            Text {
+                                text: "ENTERPRISE SYSTEM";
+                                color: Theme.text-muted;
+                                font-size: 9px;
+                                font-family: "JetBrains Mono";
+                            }
+                        }
+                    }
+                }
+
+                // Border separator after logo
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+
+                // Navigation
+                Rectangle {
+                    padding-top:20px; padding-bottom:20px; padding-left:16px; padding-right:16px;
+
+                    VerticalLayout {
+                        spacing: 8px;
+
+                        // Tab 0: TreeMap Optimizer
+                        nav-item := Rectangle {
+                            height: 40px;
+                            border-radius: Theme.radius-sm;
+                            background: active-tab == 0 ? Theme.accent.transparentize(0.95) : transparent;
+                            border-width: active-tab == 0 ? 2px : 0px;
+                            border-color: active-tab == 0 ? Theme.accent : Theme.border-color;
+
+                            // Active indicator bar
+                            Rectangle {
+                                width: 2px;
+                                height: 100%;
+                                background: active-tab == 0 ? Theme.accent : transparent;
+                            }
+
+                            HorizontalLayout {
+                                padding-left:12px; padding-right:12px;
+                                spacing: 12px;
+                                alignment: start;
+
+                                Text {
+                                    text: "01";
+                                    color: active-tab == 0 ? Theme.accent : Theme.text-muted;
+                                    font-size: 10px;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                                Text {
+                                    text: "TreeMap Optimizer";
+                                    color: active-tab == 0 ? Theme.accent : Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => {
+                                    root.tab-changed(0);
+                                }
+                            }
+                        }
+
+                        // Tab 1: Ghost-Hunter FDs
+                        nav-item2 := Rectangle {
+                            height: 40px;
+                            border-radius: Theme.radius-sm;
+                            background: active-tab == 1 ? Theme.accent.transparentize(0.95) : transparent;
+
+                            // Active indicator bar
+                            Rectangle {
+                                width: 2px;
+                                height: 100%;
+                                background: active-tab == 1 ? Theme.accent : transparent;
+                            }
+
+                            HorizontalLayout {
+                                padding-left:12px; padding-right:12px;
+                                spacing: 12px;
+                                alignment: start;
+
+                                Text {
+                                    text: "02";
+                                    color: active-tab == 1 ? Theme.accent : Theme.text-muted;
+                                    font-size: 10px;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                                Text {
+                                    text: "Ghost-Hunter FDs";
+                                    color: active-tab == 1 ? Theme.accent : Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => {
+                                    root.tab-changed(1);
+                                }
+                            }
+                        }
+
+                        // Tab 2: Fleet Commander
+                        nav-item3 := Rectangle {
+                            height: 40px;
+                            border-radius: Theme.radius-sm;
+                            background: active-tab == 2 ? Theme.accent.transparentize(0.95) : transparent;
+
+                            // Active indicator bar
+                            Rectangle {
+                                width: 2px;
+                                height: 100%;
+                                background: active-tab == 2 ? Theme.accent : transparent;
+                            }
+
+                            HorizontalLayout {
+                                padding-left:12px; padding-right:12px;
+                                spacing: 12px;
+                                alignment: start;
+
+                                Text {
+                                    text: "03";
+                                    color: active-tab == 2 ? Theme.accent : Theme.text-muted;
+                                    font-size: 10px;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                                Text {
+                                    text: "Fleet Commander";
+                                    color: active-tab == 2 ? Theme.accent : Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => {
+                                    root.tab-changed(2);
+                                }
+                            }
+                        }
+
+                        // Tab 3: AI Advisor
+                        nav-item4 := Rectangle {
+                            height: 40px;
+                            border-radius: Theme.radius-sm;
+                            background: active-tab == 3 ? Theme.accent.transparentize(0.95) : transparent;
+
+                            // Active indicator bar
+                            Rectangle {
+                                width: 2px;
+                                height: 100%;
+                                background: active-tab == 3 ? Theme.accent : transparent;
+                            }
+
+                            HorizontalLayout {
+                                padding-left:12px; padding-right:12px;
+                                spacing: 12px;
+                                alignment: start;
+
+                                Text {
+                                    text: "04";
+                                    color: active-tab == 3 ? Theme.accent : Theme.text-muted;
+                                    font-size: 10px;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                                Text {
+                                    text: "AI Advisor";
+                                    color: active-tab == 3 ? Theme.accent : Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    font-family: "JetBrains Mono";
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => {
+                                    root.tab-changed(3);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Spacer
+                Rectangle {}
+
+                // Border separator before footer
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+
+                // Footer status
+                Rectangle {
+                    height: 64px;
+                    padding-left:24px; padding-right:24px; padding-top:16px; padding-bottom:16px;
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text {
+                            text: "Engine Status";
+                            color: Theme.text-muted;
+                            font-size: 10px;
+                            letter-spacing: 1px;
+                            font-family: "JetBrains Mono";
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                border-radius: 4px;
+                                background: Theme.green;
+                            }
+                            Text {
+                                text: "Core v2.4.0 Active";
+                                color: Theme.green;
+                                font-size: 12px;
+                                font-family: "JetBrains Mono";
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.border-color;
+        }
+    }
+}

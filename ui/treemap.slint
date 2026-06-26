@@ -1,0 +1,271 @@
+import { Theme, DiskBlock } from "./types.slint";
+
+struct CatItem {
+    name: string,
+    active: bool,
+}
+
+export component TreeMapView inherits Rectangle {
+    in-out property <[DiskBlock]> blocks;
+    callback block-clicked(string);
+    callback toggle-category(string);
+
+    background: Theme.bg-tertiary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 20px;
+
+        // Title bar
+        Rectangle {
+            padding-bottom: 16px;
+
+            HorizontalLayout {
+                alignment: space-between;
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    Rectangle {
+                        width: 36px; height: 36px;
+                        border-radius: Theme.radius;
+                        background: Theme.accent.transparentize(0.9);
+                        Text {
+                            text: "💾";
+                            font-size: 20px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text {
+                            text: "Disk TreeMap Visualizer";
+                            color: Theme.text-secondary;
+                            font-size: 18px;
+                            font-weight: 500;
+                        }
+                        Text {
+                            text: "Interactive Canvas representation of the file system weight density.";
+                            color: Theme.text-muted;
+                            font-size: 12px;
+                        }
+                    }
+                }
+
+                // Legend
+                HorizontalLayout {
+                    spacing: 4px;
+                    for cat in categories: Rectangle {
+                        border-radius: Theme.radius-sm;
+                        border-width: 1px; border-color: cat.active ? Theme.border-color : transparent;
+                        background: cat.active ? transparent : #00000066;
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        padding-top: 2px;
+                        padding-bottom: 2px;
+
+                        Text {
+                            text: cat.name;
+                            color: cat.active ? Theme.text-primary : #ffffff33;
+                            font-size: 10px;
+                            font-family: "JetBrains Mono";
+                            vertical-alignment: center;
+                        }
+
+                        TouchArea {
+                            clicked => { root.toggle-category(cat.name); }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 1px;
+                background: Theme.border-color;
+            }
+        }
+
+        // Main area
+        HorizontalLayout {
+            spacing: 24px;
+
+            // Canvas area
+            Rectangle {
+                background: #00000080;
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+
+                if (blocks.length == 0) : Text {
+                    text: "No storage blocks loaded.";
+                    color: Theme.text-muted;
+                    font-size: 12px;
+                    font-family: "JetBrains Mono";
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                if (has-blocks) : Rectangle {
+                    for block in visible-blocks: Rectangle {
+                        x: block.x;
+                        y: block.y;
+                        width: block.w;
+                        height: block.h;
+                        background: block.color;
+                        border-width: 0.5px;
+                        border-color: #050505;
+                    }
+                }
+            }
+
+            // Inspection panel
+            Rectangle {
+                width: 280px;
+
+                Rectangle {
+                    background: Theme.bg-secondary;
+                    border-width: 1px; border-color: Theme.border-color;
+                    border-radius: Theme.radius;
+                    padding: 20px;
+
+                    VerticalLayout {
+                        spacing: 16px;
+
+                        Text {
+                            text: "Node Inspection";
+                            color: Theme.text-muted;
+                            font-size: 10px;
+                            letter-spacing: 1px;
+                            font-family: "JetBrains Mono";
+                        }
+
+                        if (selected-block-id != "") : VerticalLayout {
+                            spacing: 12px;
+
+                            Text {
+                                text: selected-name;
+                                color: Theme.text-secondary;
+                                font-size: 16px;
+                                font-weight: 700;
+                            }
+
+                            Rectangle {
+                                background: Theme.accent.transparentize(0.95);
+                                border-width: 1px; border-color: Theme.border-color;
+                                border-radius: 2px;
+                                padding-left: 8px;
+                                padding-right: 8px;
+                                padding-top: 2px;
+                                padding-bottom: 2px;
+                                Text {
+                                    text: selected-category;
+                                    color: Theme.accent;
+                                    font-size: 10px;
+                                    font-family: "JetBrains Mono";
+                                }
+                            }
+
+                            Rectangle {
+                                Rectangle {
+                                    height: 1px;
+                                    background: Theme.border-color;
+                                }
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    Text { text: "Absolute Location"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                                    Text { text: selected-path; color: #ffffffb3; font-size: 11px; font-family: "JetBrains Mono"; }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                VerticalLayout {
+                                    spacing: 2px;
+                                    Text { text: "Disk Occupancy"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                                    Text { text: selected-size; color: Theme.text-secondary; font-size: 14px; font-weight: 700; font-family: "JetBrains Mono"; }
+                                }
+                                VerticalLayout {
+                                    spacing: 2px;
+                                    Text { text: "Safety Rating"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                                    Text { text: selected-safety; color: selected-safety == "safe" ? Theme.green : selected-safety == "moderate" ? Theme.amber : Theme.rose; font-size: 11px; font-weight: 700; }
+                                }
+                            }
+
+                            Rectangle {
+                                Rectangle {
+                                    height: 1px;
+                                    background: Theme.border-color;
+                                }
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    Text { text: "Safety Warning"; color: Theme.text-muted; font-size: 10px; font-family: "JetBrains Mono"; }
+                                    Text { text: selected-warning; color: #ffffff80; font-size: 11px; }
+                                }
+                            }
+
+                            // Purge button
+                            Rectangle {
+                                height: 36px;
+                                border-width: 1px; border-color: Theme.rose.transparentize(0.7);
+                                border-radius: Theme.radius-sm;
+                                background: Theme.rose.transparentize(0.9);
+                                Text {
+                                    text: "🗑 Purge Block Nodes";
+                                    color: Theme.rose;
+                                    font-size: 11px; font-weight: 700; font-family: "JetBrains Mono";
+                                    horizontal-alignment: center; vertical-alignment: center;
+                                }
+                                TouchArea {
+                                    clicked => { root.block-clicked(selected-block-id); }
+                                }
+                            }
+                        }
+
+                        if (selected-block-id == "") : VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: "No block selected.";
+                                color: #ffffff33;
+                                font-size: 12px;
+                                font-family: "JetBrains Mono";
+                                horizontal-alignment: center;
+                            }
+                            Text {
+                                text: "Select any rectangle in the TreeMap to run granular system purging.";
+                                color: Theme.text-muted;
+                                font-size: 11px;
+                                horizontal-alignment: center;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Category filter state
+    property <[CatItem]> categories: [
+        { name: "Docker", active: true },
+        { name: "Logs", active: true },
+        { name: "Caches", active: true },
+        { name: "UserFiles", active: true },
+        { name: "System", active: true },
+        { name: "Ghost", active: true },
+    ];
+
+    property <[CatItem]> active-cats: categories;
+    in-out property <[DiskBlock]> visible-blocks;
+
+    // Selected block data
+    in-out property <string> selected-block-id: "";
+    in-out property <string> selected-name: "";
+    in-out property <string> selected-path: "";
+    in-out property <string> selected-category: "";
+    in-out property <string> selected-safety: "";
+    in-out property <string> selected-size: "";
+    in-out property <string> selected-warning: "";
+
+    property <bool> has-blocks: visible-blocks.length > 0;
+}

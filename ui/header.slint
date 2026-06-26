@@ -1,0 +1,103 @@
+import { Theme } from "./types.slint";
+
+export component Header inherits Rectangle {
+    in-out property <string> cpu-load: "2.4%";
+    in-out property <string> reclaimed-text: "0 B";
+    in-out property <int> used-percentage: 77;
+    in-out property <bool> is-scanning: false;
+
+    height: 64px;
+    background: Theme.bg-secondary;
+
+    HorizontalLayout {
+        padding-left: 32px;
+        padding-right: 32px;
+        alignment: space-between;
+
+        // Left stat group
+        HorizontalLayout {
+            spacing: 32px;
+
+            VerticalLayout {
+                spacing: 2px;
+                Text { text: "CPU Load"; color: Theme.text-muted; font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono"; }
+                Text { text: cpu-load; color: Theme.text-primary; font-size: 14px; font-family: "JetBrains Mono"; }
+            }
+
+            VerticalLayout {
+                spacing: 2px;
+                Text { text: "Reclaimed"; color: Theme.text-muted; font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono"; }
+                Text { text: reclaimed-text; color: Theme.accent; font-size: 14px; font-weight: 700; font-family: "JetBrains Mono"; }
+            }
+
+            VerticalLayout {
+                spacing: 2px;
+                Text { text: "Disk Status"; color: Theme.text-muted; font-size: 10px; letter-spacing: 1px; font-family: "JetBrains Mono"; }
+                Text { text: used-percentage + "% Full"; color: Theme.text-primary; font-size: 14px; font-family: "JetBrains Mono"; }
+            }
+        }
+
+        // Right stat group
+        HorizontalLayout {
+            spacing: 16px;
+            alignment: end;
+
+            // Disk usage bar
+            Rectangle {
+                height: 24px;
+                width: 200px;
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: center;
+
+                    Rectangle {
+                        width: 96px;
+                        height: 6px;
+                        border-radius: 16px;
+                        background: #ffffff1a;
+
+                        Rectangle {
+                            width: 96px * used-percentage / 100;
+                            height: 6px;
+                            border-radius: 16px;
+                            background: Theme.accent;
+                        }
+                    }
+
+                    Text {
+                        text: used-percentage + "% CAPACITY";
+                        color: #ffffff99;
+                        font-size: 10px;
+                        font-family: "JetBrains Mono";
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Status badge
+            Rectangle {
+                border-radius: Theme.radius-sm;
+                background: Theme.accent.transparentize(0.9);
+                padding-left: 8px;
+                padding-right: 8px;
+                padding-top: 4px;
+                padding-bottom: 4px;
+
+                Text {
+                    text: is-scanning ? "EXECUTING..." : "STANDBY MODE";
+                    color: Theme.accent;
+                    font-size: 10px;
+                    font-weight: 700;
+                    font-family: "JetBrains Mono";
+                    letter-spacing: 1px;
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        height: 1px;
+        background: Theme.border-color;
+    }
+}

@@ -1,0 +1,267 @@
+import { Theme, ChatMessage } from "./types.slint";
+
+component ChatBubble {
+    in-out property <string> role;
+    in-out property <string> text;
+
+    Rectangle {
+        border-radius: Theme.radius-sm;
+        background: role == "user" ? Theme.border-color : Theme.accent.transparentize(0.95);
+        border-width: 1px; border-color: role == "user" ? Theme.border-color : Theme.accent.transparentize(0.8);
+        padding: 10px;
+
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: role == "user" ? "Client Request" : "Systems Advisor";
+                color: Theme.text-muted;
+                font-size: 9px; font-family: "JetBrains Mono";
+            }
+            Text {
+                text: text;
+                color: Theme.text-primary;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component AIAdvisor inherits Rectangle {
+    in-out property <string> active-os: "linux";
+    in-out property <[ChatMessage]> chat-history;
+    in-out property <string> chat-input: "";
+    in-out property <string> audit-report: "";
+    in-out property <bool> is-loading-report: false;
+    in-out property <bool> is-asking: false;
+
+    callback send-message(string);
+    callback generate-audit;
+
+    background: Theme.bg-tertiary;
+    border-width: 1px; border-color: Theme.border-color;
+    border-radius: Theme.radius;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 24px;
+
+        Rectangle {
+            padding-bottom: 20px;
+
+            VerticalLayout {
+                spacing: 0;
+
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    Rectangle {
+                        width: 36px; height: 36px;
+                        border-radius: Theme.radius;
+                        background: Theme.accent.transparentize(0.9);
+                        Text {
+                            text: "🧠";
+                            font-size: 20px;
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text { text: "Oxidust AI Systems Advisor"; color: Theme.text-secondary; font-size: 18px; font-weight: 500; }
+                            Rectangle {
+                                border-width: 1px; border-color: Theme.border-color;
+                                border-radius: 4px;
+                                padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px;
+                                Text { text: "Gemini 3.5 Engine"; color: Theme.accent; font-size: 11px; font-family: "JetBrains Mono"; }
+                            }
+                        }
+                        Text { text: "Generates diagnostic blueprints, shell fixes, and explains kernel locks."; color: Theme.text-muted; font-size: 12px; }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border-color;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 24px;
+
+            Rectangle {
+                width: 40%;
+                background: Theme.bg-secondary;
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                padding: 20px;
+
+                VerticalLayout {
+                    spacing: 12px;
+
+                    Text {
+                        text: "💬 Interactive Shell Console";
+                        color: Theme.text-muted;
+                        font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; letter-spacing: 1px;
+                    }
+
+                    Rectangle {
+                        VerticalLayout {
+                            spacing: 8px;
+                            for msg in chat-history: ChatBubble {
+                                role: msg.role;
+                                text: msg.text;
+                            }
+                        }
+                    }
+
+                    Rectangle { }
+
+                    Rectangle {
+                        padding-top: 12px;
+
+                        VerticalLayout {
+                            spacing: 8px;
+
+                            Rectangle {
+                                height: 1px;
+                                background: Theme.border-color;
+                            }
+
+                            Text { text: "Frequently Audited:"; color: Theme.text-muted; font-size: 9px; font-family: "JetBrains Mono"; }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                Rectangle {
+                                    border-width: 1px; border-color: Theme.border-color;
+                                    border-radius: 4px;
+                                    padding-left: 8px; padding-right: 8px; padding-top: 4px; padding-bottom: 4px;
+                                    Text { text: "Release Ghost Logs"; color: #ffffffb3; font-size: 9px; font-family: "JetBrains Mono"; }
+                                    TouchArea { clicked => { root.send-message("How do I identify and release deleted Nginx log file descriptors without restarting the process?"); } }
+                                }
+                                Rectangle {
+                                    border-width: 1px; border-color: Theme.border-color;
+                                    border-radius: 4px;
+                                    padding-left: 8px; padding-right: 8px; padding-top: 4px; padding-bottom: 4px;
+                                    Text { text: "Docker Volumes Debloat"; color: #ffffffb3; font-size: 9px; font-family: "JetBrains Mono"; }
+                                    TouchArea { clicked => { root.send-message("What is the safest way to purge orphaned Docker volumes and layers on a production server?"); } }
+                                }
+                                Rectangle {
+                                    border-width: 1px; border-color: Theme.border-color;
+                                    border-radius: 4px;
+                                    padding-left: 8px; padding-right: 8px; padding-top: 4px; padding-bottom: 4px;
+                                    Text { text: "Clean Homebrew Cellars"; color: #ffffffb3; font-size: 9px; font-family: "JetBrains Mono"; }
+                                    TouchArea { clicked => { root.send-message("Which files in macOS Library/Caches are safe to clear?"); } }
+                                }
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 0;
+                        Rectangle { height: 1px; background: Theme.border-color; }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            padding-top: 12px;
+
+                            TextInput {
+                                text <=> chat-input;
+                                font-size: 12px; font-family: "JetBrains Mono";
+                                width: 100%;
+                            }
+
+                            Rectangle {
+                                width: 36px; height: 36px;
+                                border-radius: Theme.radius-sm;
+                                background: Theme.accent;
+                                Text {
+                                    text: "➤";
+                                    color: #000000;
+                                    font-size: 16px;
+                                    horizontal-alignment: center; vertical-alignment: center;
+                                }
+                                TouchArea {
+                                    clicked => { root.send-message(chat-input); chat-input = ""; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 60%;
+                background: Theme.bg-secondary;
+                border-width: 1px; border-color: Theme.border-color;
+                border-radius: Theme.radius;
+                padding: 20px;
+
+                VerticalLayout {
+                    spacing: 12px;
+
+                    Text {
+                        text: "⚡ System Storage Audit";
+                        color: Theme.text-muted;
+                        font-size: 11px; font-weight: 700; font-family: "JetBrains Mono"; letter-spacing: 1px;
+                    }
+
+                    Rectangle {
+                        background: #00000033;
+                        border-width: 1px; border-color: Theme.border-color;
+                        border-radius: Theme.radius-sm;
+                        padding: 16px;
+
+                        if (is-loading-report) : VerticalLayout {
+                            spacing: 8px;
+                            Text { text: "⏳ Evaluating System Bloat Signatures..."; color: Theme.accent; font-size: 14px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: "Connecting securely to the AI cluster."; color: Theme.text-muted; font-size: 11px; horizontal-alignment: center; }
+                        }
+
+                        if (!is-loading-report && audit-report == "") : VerticalLayout {
+                            spacing: 12px;
+                            Text { text: "❓ Audit Not Triggered"; color: Theme.text-muted; font-size: 14px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: "Generating an audit scans your active rule selections and compiles terminal outputs."; color: Theme.text-muted; font-size: 11px; horizontal-alignment: center; wrap: word-wrap; }
+                            Rectangle {
+                                height: 36px;
+                                border-width: 1px; border-color: Theme.accent.transparentize(0.7);
+                                border-radius: Theme.radius-sm;
+                                background: Theme.accent.transparentize(0.9);
+                                padding-left: 24px; padding-right: 24px;
+                                Text {
+                                    text: "📊 Generate Storage Audit";
+                                    color: Theme.accent; font-size: 12px; font-weight: 700; font-family: "JetBrains Mono";
+                                    horizontal-alignment: center; vertical-alignment: center;
+                                }
+                                TouchArea { clicked => { root.generate-audit(); } }
+                            }
+                        }
+
+                        if (audit-report != "") : Text {
+                            text: audit-report;
+                            color: Theme.text-primary;
+                            font-size: 12px;
+                            font-family: "JetBrains Mono";
+                        }
+                    }
+
+                    if (audit-report != "") : HorizontalLayout {
+                        Text {
+                            text: "Diagnostic generated • OS: " + active-os;
+                            color: Theme.text-muted;
+                            font-size: 10px;
+                        }
+                        Rectangle { }
+                        Text {
+                            text: "🔄 Re-Audit System";
+                            color: Theme.accent;
+                            font-size: 11px; font-weight: 700;
+                            TouchArea { clicked => { root.generate-audit(); } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

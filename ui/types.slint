@@ -1,0 +1,88 @@
+export struct DiskBlock {
+    id: string,
+    name: string,
+    path: string,
+    size: int,
+    category: string,
+    safety: string,
+    color: color,
+    x: length,
+    y: length,
+    w: length,
+    h: length,
+}
+
+export struct RulePreset {
+    id: string,
+    name: string,
+    description: string,
+    category: string,
+    os: string,
+    dist: string,
+    target: string,
+    size-bytes: int,
+    size-text: string,
+    safety: string,
+    checked: bool,
+}
+
+export struct GhostFile {
+    id: string,
+    pid: int,
+    process: string,
+    path: string,
+    size: int,
+    released: bool,
+}
+
+export struct FleetNode {
+    id: string,
+    name: string,
+    ip: string,
+    os: string,
+    status: string,
+    disk-usage: int,
+    disk-total: int,
+    disk-free: int,
+    ghost-files-count: int,
+    last-scan: string,
+}
+
+export struct LogEntry {
+    text: string,
+    level: string,
+}
+
+export struct ChatMessage {
+    role: string,
+    text: string,
+}
+
+export struct FleetForm {
+    visible: bool,
+    name: string,
+    ip: string,
+    os: string,
+    total-space: string,
+}
+
+export global Theme {
+    in-out property <color> bg-primary: #0A0A0A;
+    in-out property <color> bg-secondary: #0F0F0F;
+    in-out property <color> bg-tertiary: #141414;
+    in-out property <color> accent: #F27D26;
+    in-out property <color> accent-hover: #ff8c3a;
+    in-out property <color> text-primary: #E0E0E0;
+    in-out property <color> text-secondary: #FFFFFF;
+    in-out property <color> text-muted: #ffffff66;
+    in-out property <color> border-color: #ffffff1a;
+    in-out property <color> green: #34d399;
+    in-out property <color> amber: #f59e0b;
+    in-out property <color> rose: #f43f5e;
+    in-out property <color> purple: #a855f7;
+    in-out property <color> cyan: #06b6d4;
+    in-out property <color> emerald: #059669;
+    in-out property <color> blue: #2563eb;
+    in-out property <length> radius: 8px;
+    in-out property <length> radius-sm: 4px;
+}

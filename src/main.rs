@@ -1,11 +1,113 @@
 use std::cell::RefCell;
+use std::path::PathBuf;
 use std::rc::Rc;
+use std::time::Duration;
 use chrono::Local;
 use slint::SharedString;
+use slint::{Timer, TimerMode};
 
 mod types;
 use types::*;
 mod data;
+
+// Window state persistence with storage strategy pattern
+struct WindowState {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    maximized: bool,
+}
+
+trait WindowStateStorage {
+    fn save(&self, state: &WindowState);
+    fn load(&self) -> Option<WindowState>;
+}
+
+// File-based storage for Unix/macOS
+struct FileStorage {
+    path: PathBuf,
+}
+
+impl FileStorage {
+    fn new() -> Self {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        Self { path: PathBuf::from(home).join(".config/oxidust/window_state") }
+    }
+}
+
+impl WindowStateStorage for FileStorage {
+    fn save(&self, state: &WindowState) {
+        let _ = std::fs::create_dir_all(self.path.parent().unwrap());
+        let content = format!(
+            "{} {} {} {} {}",
+            state.x, state.y, state.width, state.height, state.maximized
+        );
+        let _ = std::fs::write(&self.path, content);
+    }
+
+    fn load(&self) -> Option<WindowState> {
+        let content = std::fs::read_to_string(&self.path).ok()?;
+        let parts: Vec<&str> = content.trim().split(' ').collect();
+        if parts.len() != 5 {
+            return None;
+        }
+        Some(WindowState {
+            x: parts[0].parse().ok()?,
+            y: parts[1].parse().ok()?,
+            width: parts[2].parse().ok()?,
+            height: parts[3].parse().ok()?,
+            maximized: parts[4] == "true",
+        })
+    }
+}
+
+// Registry-based storage for Windows
+#[cfg(target_os = "windows")]
+struct RegistryStorage;
+
+#[cfg(target_os = "windows")]
+impl WindowStateStorage for RegistryStorage {
+    fn save(&self, state: &WindowState) {
+        use winreg::enums::HKEY_CURRENT_USER;
+        use winreg::RegKey;
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let (key, _) = hkcu.create_subkey(r"Software\Oxidust\WindowState").ok();
+        if let Some(k) = key {
+            let _ = k.set_value("x", &state.x.to_string());
+            let _ = k.set_value("y", &state.y.to_string());
+            let _ = k.set_value("width", &state.width.to_string());
+            let _ = k.set_value("height", &state.height.to_string());
+            let _ = k.set_value("maximized", &state.maximized.to_string());
+        }
+    }
+
+    fn load(&self) -> Option<WindowState> {
+        use winreg::enums::HKEY_CURRENT_USER;
+        use winreg::RegKey;
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = hkcu.open_subkey(r"Software\Oxidust\WindowState").ok()?;
+        let x: String = key.get_value("x").ok()?;
+        let y: String = key.get_value("y").ok()?;
+        let width: String = key.get_value("width").ok()?;
+        let height: String = key.get_value("height").ok()?;
+        let maximized: String = key.get_value("maximized").ok()?;
+        Some(WindowState {
+            x: x.parse().ok()?,
+            y: y.parse().ok()?,
+            width: width.parse().ok()?,
+            height: height.parse().ok()?,
+            maximized: maximized == "true",
+        })
+    }
+}
+
+fn create_storage() -> Box<dyn WindowStateStorage> {
+    #[cfg(target_os = "windows")]
+    { Box::new(RegistryStorage) }
+    #[cfg(not(target_os = "windows"))]
+    { Box::new(FileStorage::new()) }
+}
 
 struct AppState {
     active_os: String,
@@ -185,6 +287,26 @@ fn main() {
     let app = AppWindow::new().unwrap();
     let app_weak = app.as_weak();
     let state = Rc::new(RefCell::new(AppState::new()));
+
+    // Restore window position, size, and maximized state from persistent storage
+    let win_storage = create_storage();
+    if let Some(ws) = win_storage.load() {
+        if ws.maximized {
+            app.window().set_maximized(true);
+            app.set_is_maximized(true);
+        } else if ws.width > 0 && ws.height > 0 {
+            app.window().set_size(
+                slint::WindowSize::Physical(slint::PhysicalSize::new(
+                    ws.width as u32, ws.height as u32,
+                ))
+            );
+            app.window().set_position(
+                slint::WindowPosition::Physical(slint::PhysicalPosition::new(
+                    ws.x, ws.y,
+                ))
+            );
+        }
+    }
 
     // Initial data load
     {
@@ -600,6 +722,56 @@ fn main() {
         }
     });
 
+    // Window dragging (custom title bar)
+    app.on_start_drag({
+        let app_handle = app_weak.clone();
+        move || {
+            let app = app_handle.upgrade().unwrap();
+            use slint::winit_030::WinitWindowAccessor;
+            app.window().with_winit_window(|w| {
+                let _ = w.drag_window();
+            });
+        }
+    });
+
+    // Window controls
+    app.on_close_window({
+        let app_handle = app_weak.clone();
+        move || {
+            let app = app_handle.upgrade().unwrap();
+            let pos = app.window().position();
+            let size = app.window().size();
+            let maxd = app.window().is_maximized();
+            let storage = create_storage();
+            storage.save(&WindowState {
+                x: pos.x as i32,
+                y: pos.y as i32,
+                width: size.width as i32,
+                height: size.height as i32,
+                maximized: maxd,
+            });
+            std::process::exit(0);
+        }
+    });
+
+    app.on_minimize_window({
+        let app_handle = app_weak.clone();
+        move || {
+            let app = app_handle.upgrade().unwrap();
+            app.window().set_minimized(true);
+        }
+    });
+
+    app.on_maximize_window({
+        let app_handle = app_weak.clone();
+        move || {
+            let app = app_handle.upgrade().unwrap();
+            let maximized = !app.window().is_maximized();
+            app.set_is_maximized(maximized);
+            app.window().set_maximized(maximized);
+        }
+    });
+
     // Clear logs
     app.on_clear_logs({
         let state = state.clone();
@@ -611,6 +783,27 @@ fn main() {
             update_app(&app, &s);
         }
     });
+
+    // Periodic window state save (every 3 seconds)
+    let save_timer = Timer::default();
+    {
+        let app_handle = app_weak.clone();
+        save_timer.start(TimerMode::Repeated, Duration::from_secs(3), move || {
+            if let Some(app) = app_handle.upgrade() {
+                let pos = app.window().position();
+                let size = app.window().size();
+                let maxd = app.window().is_maximized();
+                let storage = create_storage();
+                storage.save(&WindowState {
+                    x: pos.x as i32,
+                    y: pos.y as i32,
+                    width: size.width as i32,
+                    height: size.height as i32,
+                    maximized: maxd,
+                });
+            }
+        });
+    }
 
     app.run().unwrap();
 }
